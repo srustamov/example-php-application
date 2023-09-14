@@ -93,7 +93,8 @@ class Model
                 $sql .= "$column = ?,";
             }
             $sql = rtrim($sql, ',');
-            $sql .= " WHERE id = $this->id";
+            $sql .= " WHERE id = ?";
+            $values[] = $this->id;
         }
 
         $statement = static::getConnection()->prepare($sql);
