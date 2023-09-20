@@ -33,8 +33,6 @@ class FormController
 
         $form->body = htmlspecialchars($request->post('body'));
 
-        $form->save();
-
         return view('form', [
             'success' => $form->save(),
             'body' => $form->body,

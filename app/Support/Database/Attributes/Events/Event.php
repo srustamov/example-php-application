@@ -10,7 +10,7 @@ use JetBrains\PhpStorm\ExpectedValues;
 class Event
 {
     public function __construct(
-        #[ExpectedValues(['created'])]
+        #[ExpectedValues(['created','updated','saved','saving','creating','updating'])]
         public string $event
     )
     {

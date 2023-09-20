@@ -1,12 +1,5 @@
 <?php
 
-$_ENV['DB_CONNECTION'] = 'mysql';
-$_ENV['DB_HOST'] = 'localhost';
-$_ENV['DB_PORT'] = '3306';
-$_ENV['DB_DATABASE'] = 'test';
-$_ENV['DB_USERNAME'] = 'root';
-$_ENV['DB_PASSWORD'] = '';
-
 define('BASE_PATH', dirname(__DIR__));
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -46,6 +39,9 @@ $router = new App\Support\Router;
 
 $router->get('/', [App\Controllers\FormController::class, 'index']);
 $router->post('/', [App\Controllers\FormController::class, 'store']);
+$router->get('/info', function (){
+    phpinfo();
+});
 
 $router->fallback(function (App\Support\Http\Request $request, App\Support\Http\Response $response) {
     $response->setStatus(404);

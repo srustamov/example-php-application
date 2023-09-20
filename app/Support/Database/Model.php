@@ -11,6 +11,8 @@ use ReflectionClass;
 
 class Model
 {
+    private array $attribute_cache = [];
+
     public ?int $id = null;
 
     protected string $connection = 'default';
@@ -34,17 +36,21 @@ class Model
 
     public function getTable()
     {
+        if (isset($this->attribute_cache[static::class]['table'])) {
+            return $this->attribute_cache[static::class]['table'];
+        }
+
         $reflection = new ReflectionClass($this);
 
         $attributes = $reflection->getAttributes();
 
         foreach ($attributes as $attribute) {
             if ($attribute->getName() === Attributes\Table::class) {
-                return $attribute->newInstance()->getName();
+                return $this->attribute_cache[static::class]['table'] = $attribute->newInstance()->getName();
             }
         }
 
-        return strtolower((new ReflectionClass($this))->getShortName()) . 's';
+        return $this->attribute_cache[static::class]['table'] = strtolower($reflection->getShortName()) . 's';
     }
 
     public static function getConnection(): PDO
@@ -98,6 +104,7 @@ class Model
 
         $statement = static::getConnection()->prepare($sql);
 
+        $this->fireRegisteredEvents($this->id ? ['updating','saving'] : 'creating');
         if (!$statement->execute($values)) {
             return false;
         }
@@ -105,13 +112,30 @@ class Model
         if (!$this->id) {
             $this->id = static::getConnection()->lastInsertId();
             $this->fireRegisteredEvents('created');
+        } else {
+            $this->fireRegisteredEvents('updated');
+            $this->fireRegisteredEvents('saved');
         }
 
         return true;
     }
 
-    protected function fireRegisteredEvents(string $name): void
+    public function fireRegisteredEvents(string|array $name): void
     {
+        if (is_array($name)) {
+            foreach ($name as $event) {
+                $this->fireRegisteredEvents($event);
+            }
+            return;
+        }
+
+        if (isset($this->attribute_cache[static::class]['events'][$name])) {
+            foreach ($this->attribute_cache[static::class]['events'][$name] as $method) {
+                $this->$method();
+            }
+            return;
+        }
+
         $class = new ReflectionClass(static::class);
 
         $methods = $class->getMethods();
@@ -121,6 +145,7 @@ class Model
             foreach ($attributes as $attribute) {
                 if ($attribute->getName() === Event::class) {
                     if ($attribute->newInstance()->getName() === $name) {
+                        $this->attribute_cache[static::class]['events'][$name][] = $method->getName();
                         $this->{$method->getName()}($this);
                     }
                 }
